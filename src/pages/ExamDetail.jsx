@@ -53,7 +53,7 @@ import {
 } from 'react-icons/fi';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../utils/api';
+import api from '../services/config';
 
 const ExamDetail = () => {
   const { id } = useParams();

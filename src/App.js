@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Exams from './pages/Exams';
 import ExamDetail from './pages/ExamDetail';
+import Exam from './pages/Exam';
 import Analyzer from './pages/Analyzer';
 import Streaming from './pages/Streaming';
 import Profile from './pages/Profile';
@@ -29,6 +30,7 @@ function App() {
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/exams" element={<PrivateRoute><Exams /></PrivateRoute>} />
             <Route path="/exams/:id" element={<PrivateRoute><ExamDetail /></PrivateRoute>} />
+            <Route path="/exam/:examId" element={<PrivateRoute><Exam /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             
             {/* Teacher only routes */}

@@ -29,5 +29,11 @@ export const examsApi = {
   getExamParticipants: async (examId) => {
     const response = await api.get(`/exams/${examId}/participants`);
     return response.data;
+  },
+
+  // 시험 시작
+  startExam: async (examId) => {
+    const response = await api.post(`/exams/${examId}/start`);
+    return response.data;
   }
 };
