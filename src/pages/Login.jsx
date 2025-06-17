@@ -17,31 +17,47 @@ import {
   Divider,
   useColorModeValue
 } from '@chakra-ui/react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { FiEye, FiEyeOff, FiLock, FiMail } from 'react-icons/fi';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
+import { FiEye, FiEyeOff, FiLock, FiUser } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
+  const [nickname, setnickname] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
+  const from = location.state?.from?.pathname || '/dashboard';
   const bg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    // Validate inputs
+    if (!nickname.trim()) {
       toast({
-        title: '오류',
-        description: '이메일과 비밀번호를 모두 입력해주세요.',
+        title: '입력 오류',
+        description: '아이디를 입력해주세요.',
         status: 'error',
         duration: 3000,
         isClosable: true,
+        position: 'top-right',
+      });
+      return;
+    }
+    
+    if (!password) {
+      toast({
+        title: '입력 오류',
+        description: '비밀번호를 입력해주세요.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+        position: 'top-right',
       });
       return;
     }
@@ -49,27 +65,48 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      const result = await login(email, password);
+      console.log('Attempting login...');
+      const result = await login(nickname, password);
       
       if (result.success) {
+        console.log('Login successful, redirecting to:', from);
         toast({
           title: '로그인 성공',
           description: '성공적으로 로그인되었습니다.',
           status: 'success',
           duration: 2000,
           isClosable: true,
+          position: 'top-right',
         });
-        navigate('/dashboard');
+        // Send them back to the page they tried to visit when they were
+        // redirected to the login page.
+        navigate(from, { replace: true });
       } else {
         throw new Error(result.message || '로그인에 실패했습니다.');
       }
     } catch (error) {
+      console.error('Login error in handleSubmit:', error);
+      
+      // More specific error messages based on error type
+      let errorMessage = '로그인 중 오류가 발생했습니다.';
+      
+      if (error.message.includes('Network Error')) {
+        errorMessage = '서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요.';
+      } else if (error.response?.status === 401) {
+        errorMessage = '아이디 또는 비밀번호가 일치하지 않습니다.';
+      } else if (error.response?.status >= 500) {
+        errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: '로그인 실패',
-        description: error.message || '로그인 중 오류가 발생했습니다.',
+        description: errorMessage,
         status: 'error',
-        duration: 3000,
+        duration: 4000,
         isClosable: true,
+        position: 'top-right',
       });
     } finally {
       setIsLoading(false);
@@ -99,18 +136,18 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           <VStack spacing={4}>
-            <FormControl id="email" isRequired>
-              <FormLabel>이메일</FormLabel>
+            <FormControl id="nickname" isRequired>
+              <FormLabel>아이디</FormLabel>
               <InputGroup>
                 <Input
-                  type="email"
-                  placeholder="이메일을 입력하세요"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  placeholder="아이디를 입력하세요"
+                  value={nickname}
+                  onChange={(e) => setnickname(e.target.value)}
                   autoFocus
                 />
                 <InputRightElement>
-                  <FiMail color="gray.500" />
+                  <FiUser color="gray.500" />
                 </InputRightElement>
               </InputGroup>
             </FormControl>

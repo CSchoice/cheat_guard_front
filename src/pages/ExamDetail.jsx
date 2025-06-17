@@ -27,7 +27,18 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  useColorModeValue
+  useColorModeValue,
+  Card,
+  CardHeader,
+  CardBody,
+  SimpleGrid,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Icon
 } from '@chakra-ui/react';
 import { 
   FiArrowLeft, 

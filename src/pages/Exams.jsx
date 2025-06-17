@@ -10,7 +10,6 @@ import {
   Text,
   Button,
   Badge,
-  useDisclosure,
   IconButton,
   Menu,
   MenuButton,
@@ -24,7 +23,6 @@ import {
   Select,
   HStack,
   VStack,
-  Divider,
   useColorModeValue,
   AlertDialog,
   AlertDialogBody,
@@ -46,9 +44,10 @@ import {
   FiTrash2,
   FiEye
 } from 'react-icons/fi';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Icon } from '@chakra-ui/react';
+import { Link as RouterLink } from 'react-router-dom';
+import { examsApi } from '../api/exams';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../utils/api';
 
 const Exams = () => {
   const [exams, setExams] = useState([]);
@@ -57,32 +56,28 @@ const Exams = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useAlertDisclosure();
-  const [examToDelete, setExamToDelete] = useState(null);
-  const cancelRef = React.useRef();
-  const { user } = useAuth();
-  const toast = useToast();
-  const navigate = useNavigate();
-  
-  const cardBg = useColorModeValue('white', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  const hoverBg = useColorModeValue('gray.50', 'gray.600');
 
-  // 시험 목록 불러오기
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useAlertDisclosure();
+  const [selectedExam, setSelectedExam] = useState(null);
+  const cancelRef = React.useRef();
+  const toast = useToast();
+  const { user } = useAuth();
+
+  // 시험 목록 가져오기
   useEffect(() => {
     const fetchExams = async () => {
       try {
-        const response = await api.get('/exams');
-        setExams(response.data);
-        setFilteredExams(response.data);
+        setIsLoading(true);
+        const data = await examsApi.getExams();
+        setExams(data);
+        setFilteredExams(data);
       } catch (error) {
         console.error('시험 목록을 불러오는 중 오류 발생:', error);
         toast({
-          title: '오류',
+          title: '오류 발생',
           description: '시험 목록을 불러오는 중 오류가 발생했습니다.',
           status: 'error',
-          duration: 3000,
+          duration: 5000,
           isClosable: true,
         });
       } finally {
@@ -92,6 +87,34 @@ const Exams = () => {
 
     fetchExams();
   }, [toast]);
+
+  // 검색 및 필터 적용
+  useEffect(() => {
+    let result = [...exams];
+    
+    // 검색어 필터링
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(exam => 
+        exam.title.toLowerCase().includes(term) ||
+        exam.description?.toLowerCase().includes(term)
+      );
+    }
+    
+    // 상태 필터링
+    if (statusFilter !== 'all') {
+      result = result.filter(exam => exam.status === statusFilter);
+    }
+    
+    setFilteredExams(result);
+  }, [exams, searchTerm, statusFilter]);
+
+
+
+
+  const cardBg = useColorModeValue('white', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const hoverBg = useColorModeValue('gray.50', 'gray.600');
 
   // 검색 및 필터링 적용
   useEffect(() => {
@@ -133,17 +156,17 @@ const Exams = () => {
     setFilteredExams(result);
   }, [exams, searchTerm, statusFilter, sortBy]);
 
-  // 시험 삭제 핸들러
+  // 시험 삭제 처리
   const handleDeleteExam = async () => {
-    if (!examToDelete) return;
+    if (!selectedExam) return;
     
     try {
-      await api.delete(`/exams/${examToDelete.id}`);
-      
-      setExams(prevExams => prevExams.filter(exam => exam.id !== examToDelete.id));
+      await examsApi.deleteExam(selectedExam.id);
+      setExams(exams.filter(e => e.id !== selectedExam.id));
       
       toast({
-        title: '시험이 삭제되었습니다.',
+        title: '시험 삭제 완료',
+        description: '시험이 성공적으로 삭제되었습니다.',
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -151,17 +174,28 @@ const Exams = () => {
     } catch (error) {
       console.error('시험 삭제 중 오류 발생:', error);
       toast({
-        title: '오류',
-        description: '시험을 삭제하는 중 오류가 발생했습니다.',
+        title: '오류 발생',
+        description: '시험 삭제 중 오류가 발생했습니다.',
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {
       onDeleteClose();
-      setExamToDelete(null);
+      setSelectedExam(null);
     }
   };
+
+  const handleConfirmDelete = async () => {
+    await handleDeleteExam();
+  };
+
+  const handleDeleteClick = (exam) => {
+    setSelectedExam(exam);
+    onDeleteOpen();
+  };
+
+
 
   // 시험 상태 반환 (예정, 진행 중, 종료)
   const getExamStatus = (startTime, endTime) => {
@@ -342,8 +376,7 @@ const Exams = () => {
                             color="red.500"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setExamToDelete(exam);
-                              onDeleteOpen();
+                              handleDeleteClick(exam);
                             }}
                           >
                             삭제
@@ -377,7 +410,7 @@ const Exams = () => {
                       bg={hoverBg} 
                       borderRadius="md"
                       borderLeft="4px"
-                      borderLeftColor={`${status.color}.500`}
+                      borderLeftColor={getExamStatus(exam.startTime, exam.endTime).color + '.500'}
                     >
                       <VStack align="stretch" spacing={1}>
                         <HStack>
@@ -413,7 +446,7 @@ const Exams = () => {
                     as={RouterLink}
                     to={`/exams/${exam.id}`}
                   >
-                    {status.status === 'completed' ? '결과 보기' : '시험 보기'}
+                    {getExamStatus(exam.startTime, exam.endTime).status === 'completed' ? '결과 보기' : '시험 보기'}
                   </Button>
                 </CardFooter>
               </Card>
@@ -435,14 +468,14 @@ const Exams = () => {
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              정말로 "{examToDelete?.title}" 시험을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              정말로 "{selectedExam?.title}" 시험을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
             </AlertDialogBody>
 
             <AlertDialogFooter>
               <Button ref={cancelRef} onClick={onDeleteClose}>
                 취소
               </Button>
-              <Button colorScheme="red" onClick={handleDeleteExam} ml={3}>
+              <Button colorScheme="red" onClick={handleConfirmDelete} ml={3}>
                 삭제
               </Button>
             </AlertDialogFooter>

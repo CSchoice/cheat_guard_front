@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   SimpleGrid, 
@@ -6,8 +6,6 @@ import {
   StatLabel, 
   StatNumber, 
   StatHelpText, 
-  StatArrow, 
-  StatGroup,
   Heading,
   Text,
   Card,
@@ -19,8 +17,9 @@ import {
   Icon,
   HStack,
   VStack,
-  Divider,
-  Badge
+  Badge,
+  useToast,
+  Spinner
 } from '@chakra-ui/react';
 import { 
   FiCalendar, 
@@ -33,20 +32,25 @@ import {
 } from 'react-icons/fi';
 import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { examsApi } from '../api/exams';
 
-// 샘플 데이터 (실제로는 API에서 가져옵니다)
-const stats = {
-  totalExams: 12,
-  activeExams: 3,
-  students: 45,
-  cheatingAttempts: 2,
+// 상태 타입 정의
+const ExamStatus = {
+  SCHEDULED: 'scheduled',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled'
 };
 
-const recentActivities = [
-  { id: 1, type: 'exam', title: '중간고사', date: '2023-05-15', status: 'completed' },
-  { id: 2, type: 'alert', title: '의심 행위 감지', date: '2023-05-14', status: 'warning' },
-  { id: 3, type: 'exam', title: '퀴즈 #3', date: '2023-05-10', status: 'upcoming' },
-];
+// 샘플 데이터 (API 호출 실패 시 사용)
+const defaultStats = {
+  totalExams: 0,
+  activeExams: 0,
+  students: 0,
+  cheatingAttempts: 0,
+};
+
+const defaultActivities = [];
 
 const upcomingExams = [
   { id: 1, title: '기말고사', date: '2023-06-20', time: '09:00 - 12:00', status: 'upcoming' },
@@ -54,9 +58,76 @@ const upcomingExams = [
 ];
 
 const Dashboard = () => {
+  const [stats, setStats] = useState(defaultStats);
+  const [recentActivities, setRecentActivities] = useState(defaultActivities);
+  const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  const toast = useToast();
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        // 시험 목록 가져오기
+        const exams = await examsApi.getExams();
+        
+        // 통계 데이터 계산
+        const totalExams = exams.length;
+        const activeExams = exams.filter(
+          exam => exam.status === ExamStatus.IN_PROGRESS
+        ).length;
+        
+        // TODO: 학생 수와 부정행위 시도 수는 백엔드에서 제공해야 함
+        const students = 0;
+        const cheatingAttempts = 0;
+
+        setStats({
+          totalExams,
+          activeExams,
+          students,
+          cheatingAttempts,
+        });
+
+        // 최근 활동 내역 (최근 5개 시험)
+        const recentExams = exams
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 5)
+          .map(exam => ({
+            id: exam.id,
+            type: 'exam',
+            title: exam.title,
+            date: exam.startTime,
+            status: exam.status
+          }));
+
+        setRecentActivities(recentExams);
+      } catch (error) {
+        console.error('대시보드 데이터를 불러오는 중 오류 발생:', error);
+        toast({
+          title: '오류 발생',
+          description: '대시보드 데이터를 불러오는 중 오류가 발생했습니다.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [toast]);
+
   const cardBg = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
+
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minH="60vh">
+        <Spinner size="xl" />
+      </Box>
+    );
+  }
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -102,11 +173,10 @@ const Dashboard = () => {
           <Card bg={cardBg} border="1px" borderColor={borderColor}>
             <CardBody>
               <Stat>
-                <StatLabel>총 시험</StatLabel>
+                <StatLabel>총 시험 수</StatLabel>
                 <StatNumber>{stats.totalExams}</StatNumber>
                 <StatHelpText>
-                  <StatArrow type='increase' />
-                  2개 증가
+                  전체 등록된 시험 수
                 </StatHelpText>
               </Stat>
               <Icon as={FiFileText} w={8} h={8} color="blue.500" mt={2} />
@@ -119,8 +189,7 @@ const Dashboard = () => {
                 <StatLabel>진행 중인 시험</StatLabel>
                 <StatNumber>{stats.activeExams}</StatNumber>
                 <StatHelpText>
-                  <StatArrow type='decrease' />
-                  1개 감소
+                  현재 진행 중인 시험 수
                 </StatHelpText>
               </Stat>
               <Icon as={FiClock} w={8} h={8} color="yellow.500" mt={2} />
@@ -133,8 +202,7 @@ const Dashboard = () => {
                 <StatLabel>학생 수</StatLabel>
                 <StatNumber>{stats.students}</StatNumber>
                 <StatHelpText>
-                  <StatArrow type='increase' />
-                  5명 증가
+                  전체 등록된 학생 수
                 </StatHelpText>
               </Stat>
               <Icon as={FiUsers} w={8} h={8} color="green.500" mt={2} />
@@ -144,11 +212,10 @@ const Dashboard = () => {
           <Card bg={cardBg} border="1px" borderColor={borderColor}>
             <CardBody>
               <Stat>
-                <StatLabel>의심 행위</StatLabel>
+                <StatLabel>부정행위 시도</StatLabel>
                 <StatNumber>{stats.cheatingAttempts}</StatNumber>
                 <StatHelpText>
-                  <StatArrow type='decrease' />
-                  1개 감소
+                  총 감지된 부정행위 시도 수
                 </StatHelpText>
               </Stat>
               <Icon as={FiAlertCircle} w={8} h={8} color="red.500" mt={2} />
@@ -187,8 +254,8 @@ const Dashboard = () => {
               </VStack>
             </CardBody>
             <CardFooter>
-              <Button variant="link" colorScheme="blue" as={RouterLink} to="/exams">
-                모든 활동 보기
+              <Button as={RouterLink} to="/exams" size="sm" colorScheme="blue" variant="outline">
+                자세히 보기
               </Button>
             </CardFooter>
           </Card>
