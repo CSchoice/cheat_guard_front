@@ -1,19 +1,36 @@
 import React from 'react';
-import { Stat, StatLabel, StatNumber, StatHelpText, Box, Icon } from '@chakra-ui/react';
+import {
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  Box,
+  Icon,
+  useColorModeValue
+} from '@chakra-ui/react';
 
-const StatsCard = ({ title, value, icon, colorScheme, helpText }) => {
+const StatsCard = ({ title, value, icon, colorScheme = 'blue', helpText }) => {
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const bgColor = useColorModeValue('white', 'gray.700');
+  const labelColor = useColorModeValue('gray.600', 'gray.300');
+
   return (
-    <Box 
-      p={4} 
-      borderWidth="1px" 
+    <Box
+      position="relative"
+      p={4}
+      borderWidth="1px"
       borderRadius="lg"
-      borderColor="gray.200"
+      borderColor={borderColor}
       boxShadow="sm"
-      bg="white"
+      bg={bgColor}
     >
       <Stat>
-        <StatLabel color="gray.600" fontSize="sm">{title}</StatLabel>
-        <StatNumber fontSize="2xl" my={2}>{value}</StatNumber>
+        <StatLabel color={labelColor} fontSize="sm">
+          {title}
+        </StatLabel>
+        <StatNumber fontSize="2xl" my={2}>
+          {value}
+        </StatNumber>
         {helpText && (
           <StatHelpText fontSize="xs" mb={0}>
             {helpText}

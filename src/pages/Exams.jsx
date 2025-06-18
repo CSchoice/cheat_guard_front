@@ -18,10 +18,9 @@ import {
   Spinner,
   Center
 } from '@chakra-ui/react';
-import { 
+import {
   FiSearch,
-  FiCalendar, 
-  FiClock,
+  FiCalendar,
   FiPlay,
   FiAlertCircle
 } from 'react-icons/fi';
@@ -35,19 +34,16 @@ const Exams = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const toast = useToast();
   const navigate = useNavigate();
-  // user는 나중에 사용할 수 있으므로 주석 처리만 해둡니다
-  // eslint-disable-next-line no-unused-vars
   const { user } = useAuth();
 
-  // 시험 시작 처리
   const handleStartExam = async (examId) => {
     try {
       const response = await examsApi.startExam(examId);
-      navigate(`/exam/${examId}`, { 
-        state: { 
+      navigate(`/exam/${examId}`, {
+        state: {
           sessionId: response.sessionId,
-          fastApiUrl: response.fastApiUrl 
-        } 
+          fastApiUrl: response.fastApiUrl
+        }
       });
     } catch (error) {
       console.error('시험 시작 중 오류 발생:', error);
@@ -61,7 +57,6 @@ const Exams = () => {
     }
   };
 
-  // 시험 참여 처리
   const handleParticipate = async (examId) => {
     try {
       await examsApi.participateInExam(examId);
@@ -72,19 +67,16 @@ const Exams = () => {
         duration: 3000,
         isClosable: true,
       });
-      
-      // 참여 후 내 시험 목록 업데이트
+
       const myExamsResponse = await examsApi.getMyParticipatingExams();
       const myExams = Array.isArray(myExamsResponse) ? myExamsResponse : (myExamsResponse?.data || []);
-      
-      // 시험 목록 업데이트
-      setExams(prevExams => 
+
+      setExams(prevExams =>
         prevExams.map(exam => ({
           ...exam,
           isParticipating: myExams.some(myExam => myExam.id === exam.id)
         }))
       );
-      
     } catch (error) {
       console.error('시험 참여 중 오류 발생:', error);
       toast({
@@ -97,38 +89,28 @@ const Exams = () => {
     }
   };
 
-  // 전체 시험 목록 가져오기
   useEffect(() => {
     let isMounted = true;
-    
+
     const fetchAllExams = async () => {
       try {
         setIsLoading(true);
-        console.log('Fetching all exams...');
-        
-        // 전체 시험 목록과 내가 참여 중인 시험 목록을 병렬로 가져오기
         const [allExamsResponse, myExamsResponse] = await Promise.all([
           examsApi.getExams(),
           examsApi.getMyParticipatingExams()
         ]);
-        
+
         const allExams = Array.isArray(allExamsResponse) ? allExamsResponse : (allExamsResponse?.data || []);
         const myExams = Array.isArray(myExamsResponse) ? myExamsResponse : (myExamsResponse?.data || []);
-        
         if (!isMounted) return;
-        
-        console.log('Fetched all exams:', allExams);
-        console.log('My participating exams:', myExams);
-        
-        // 현재 시간 기준으로 시험 상태 분류 및 참여 여부 설정
+
         const now = new Date();
         const processedExams = allExams.map(exam => ({
           ...exam,
-          status: new Date(exam.endedAt) < now ? 'ended' : 'available',
+          status: new Date(exam.deadlineAt) > now ? 'available' : 'ended',
           isParticipating: myExams.some(myExam => myExam.id === exam.id)
         }));
-        
-        console.log('Processed all exams:', processedExams);
+
         setExams(processedExams);
       } catch (error) {
         console.error('시험 목록을 불러오는 중 오류 발생:', error);
@@ -149,23 +131,19 @@ const Exams = () => {
     };
 
     fetchAllExams();
-    
     return () => {
-      isMounted = false; // 컴포넌트 언마운트 시 플래그 설정
+      isMounted = false;
     };
   }, [toast]);
 
-  // 검색어로 필터링
-  const filteredExams = exams.filter(exam => 
+  const filteredExams = exams.filter(exam =>
     exam.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     exam.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // 시험 상태별로 분류
   const availableExams = filteredExams.filter(exam => exam.status === 'available');
   const endedExams = filteredExams.filter(exam => exam.status === 'ended');
 
-  // 날짜 포맷팅
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString('ko-KR', {
       year: 'numeric',
@@ -191,7 +169,6 @@ const Exams = () => {
         <Heading size="lg">전체 시험 목록</Heading>
       </Flex>
 
-      {/* 검색 */}
       <Card mb={6}>
         <CardBody>
           <InputGroup maxW="500px">
@@ -207,12 +184,9 @@ const Exams = () => {
         </CardBody>
       </Card>
 
-      {/* 시작 가능한 시험 */}
       {availableExams.length > 0 && (
         <>
-          <Heading size="md" mb={4}>
-            시작 가능한 시험
-          </Heading>
+          <Heading size="md" mb={4}>진행 중인 시험</Heading>
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6} mb={8}>
             {availableExams.map((exam) => (
               <Card key={exam.id} variant="outline">
@@ -220,16 +194,10 @@ const Exams = () => {
                   <VStack align="stretch" spacing={3}>
                     <Heading size="md">{exam.title}</Heading>
                     {exam.description && <Text>{exam.description}</Text>}
-                    <VStack align="start" spacing={1} color="gray.600">
-                      <HStack>
-                        <Icon as={FiCalendar} />
-                        <Text>시작: {formatDate(exam.startedAt)}</Text>
-                      </HStack>
-                      <HStack>
-                        <Icon as={FiClock} />
-                        <Text>종료: {formatDate(exam.endedAt)}</Text>
-                      </HStack>
-                    </VStack>
+                    <HStack color="gray.600">
+                      <Icon as={FiCalendar} />
+                      <Text>마감: {formatDate(exam.deadlineAt)}</Text>
+                    </HStack>
                     {exam.isParticipating ? (
                       <Button
                         colorScheme="blue"
@@ -257,12 +225,9 @@ const Exams = () => {
         </>
       )}
 
-      {/* 종료된 시험 */}
       {endedExams.length > 0 && (
         <>
-          <Heading size="md" mb={4}>
-            종료된 시험
-          </Heading>
+          <Heading size="md" mb={4}>종료된 시험</Heading>
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
             {endedExams.map((exam) => (
               <Card key={exam.id} variant="outline" opacity={0.7}>
@@ -270,16 +235,10 @@ const Exams = () => {
                   <VStack align="stretch" spacing={3}>
                     <Heading size="md">{exam.title}</Heading>
                     {exam.description && <Text>{exam.description}</Text>}
-                    <VStack align="start" spacing={1} color="gray.600">
-                      <HStack>
-                        <Icon as={FiCalendar} />
-                        <Text>시작: {formatDate(exam.startedAt)}</Text>
-                      </HStack>
-                      <HStack>
-                        <Icon as={FiClock} />
-                        <Text>종료: {formatDate(exam.endedAt)}</Text>
-                      </HStack>
-                    </VStack>
+                    <HStack color="gray.600">
+                      <Icon as={FiCalendar} />
+                      <Text>마감: {formatDate(exam.deadlineAt)}</Text>
+                    </HStack>
                     <Button
                       leftIcon={<FiAlertCircle />}
                       variant="ghost"

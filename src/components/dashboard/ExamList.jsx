@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  Card, 
-  CardHeader, 
-  CardBody, 
-  VStack, 
-  Text, 
-  Button, 
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  VStack,
+  Text,
+  Button,
   useColorModeValue,
   Box
 } from '@chakra-ui/react';
@@ -31,9 +31,9 @@ const ExamList = ({ exams, onParticipate, isLoading }) => {
       <CardHeader display="flex" justifyContent="space-between" alignItems="center">
         <Box as="h2" fontSize="lg" fontWeight="bold">시험 목록</Box>
         {!showAll && exams.length > 5 && (
-          <Button 
-            size="sm" 
-            variant="ghost" 
+          <Button
+            size="sm"
+            variant="ghost"
             rightIcon={<FiArrowRight />}
             onClick={() => setShowAll(true)}
           >
@@ -45,10 +45,10 @@ const ExamList = ({ exams, onParticipate, isLoading }) => {
         <VStack spacing={4} align="stretch">
           {displayedExams.length > 0 ? (
             displayedExams.map((exam) => (
-              <ExamItem 
-                key={exam.id} 
-                exam={exam} 
-                onParticipate={onParticipate} 
+              <ExamItem
+                key={exam.id}
+                exam={exam}
+                onParticipate={onParticipate}
               />
             ))
           ) : (

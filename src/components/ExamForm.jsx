@@ -18,8 +18,7 @@ import api from '../api/config';
 const ExamForm = ({ onSubmit }) => {
   const [formData, setFormData] = useState({
     title: '',
-    startAt: '',
-    endAt: ''
+    deadlineAt: ''
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -30,21 +29,15 @@ const ExamForm = ({ onSubmit }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.title.trim()) {
       newErrors.title = '시험 제목을 입력해주세요.';
     }
-    
-    if (!formData.startAt) {
-      newErrors.startAt = '시작 일시를 선택해주세요.';
+
+    if (!formData.deadlineAt) {
+      newErrors.deadlineAt = '마감 일시를 선택해주세요.';
     }
-    
-    if (!formData.endAt) {
-      newErrors.endAt = '종료 일시를 선택해주세요.';
-    } else if (new Date(formData.endAt) <= new Date(formData.startAt)) {
-      newErrors.endAt = '종료 일시는 시작 일시 이후로 설정해주세요.';
-    }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -55,7 +48,7 @@ const ExamForm = ({ onSubmit }) => {
       ...prev,
       [name]: value
     }));
-    
+
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -65,29 +58,20 @@ const ExamForm = ({ onSubmit }) => {
   };
 
   const handleSubmit = async (e) => {
-    // 폼 제출 시 페이지 리로드 방지
-    if (e) {
-      e.preventDefault();
-    }
-    
-    if (!validateForm()) {
-      return;
-    }
-    
+    if (e) e.preventDefault();
+    if (!validateForm()) return;
+
     setIsLoading(true);
-    
+
     try {
       const examData = {
         title: formData.title,
-        startAt: new Date(formData.startAt).toISOString(),
-        endAt: new Date(formData.endAt).toISOString()
+        deadlineAt: new Date(formData.deadlineAt).toISOString()
       };
-      
-      // 상위 컴포넌트로 폼 데이터 전달
+
       if (onSubmit) {
         await onSubmit(examData);
       } else {
-        // 상위 컴포넌트에서 onSubmit을 제공하지 않은 경우 기본 동작
         await api.post('exams', examData);
         toast({
           title: '시험이 생성되었습니다.',
@@ -106,7 +90,7 @@ const ExamForm = ({ onSubmit }) => {
         duration: 5000,
         isClosable: true,
       });
-      throw error; // 상위 컴포넌트에서 에러를 처리할 수 있도록 에러를 다시 던집니다.
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +107,7 @@ const ExamForm = ({ onSubmit }) => {
             시험 정보를 입력해주세요
           </Text>
         </Box>
-        
+
         <FormControl isRequired isInvalid={!!errors.title}>
           <FormLabel>시험 제목</FormLabel>
           <Input
@@ -135,30 +119,18 @@ const ExamForm = ({ onSubmit }) => {
           />
           <FormErrorMessage>{errors.title}</FormErrorMessage>
         </FormControl>
-        
-        <FormControl isRequired isInvalid={!!errors.startAt}>
-          <FormLabel>시작 일시</FormLabel>
+
+        <FormControl isRequired isInvalid={!!errors.deadlineAt}>
+          <FormLabel>마감 일시</FormLabel>
           <Input
             type="datetime-local"
-            name="startAt"
-            value={formData.startAt}
+            name="deadlineAt"
+            value={formData.deadlineAt}
             onChange={handleChange}
           />
-          <FormErrorMessage>{errors.startAt}</FormErrorMessage>
+          <FormErrorMessage>{errors.deadlineAt}</FormErrorMessage>
         </FormControl>
-        
-        <FormControl isRequired isInvalid={!!errors.endAt}>
-          <FormLabel>종료 일시</FormLabel>
-          <Input
-            type="datetime-local"
-            name="endAt"
-            value={formData.endAt}
-            onChange={handleChange}
-            min={formData.startAt}
-          />
-          <FormErrorMessage>{errors.endAt}</FormErrorMessage>
-        </FormControl>
-        
+
         <Button
           type="submit"
           colorScheme="blue"
