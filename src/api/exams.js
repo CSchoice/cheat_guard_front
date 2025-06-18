@@ -35,5 +35,17 @@ export const examsApi = {
   startExam: async (examId) => {
     const response = await api.post(`/exams/${examId}/start`);
     return response.data;
+  },
+
+  // 내가 참여 중인 시험 목록을 가져옴
+  getMyParticipatingExams: async () => {
+    const response = await api.get('/exams/my');
+    return response.data;
+  },
+  
+  // 시험 참여하기
+  participateInExam: async (examId) => {
+    const response = await api.post(`/exams/${examId}/register`);
+    return response.data;
   }
 };

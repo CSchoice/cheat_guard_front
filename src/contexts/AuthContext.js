@@ -78,9 +78,10 @@ export function AuthProvider({ children }) {
 
   const register = async (userData) => {
     try {
-      await api.post('/auth/register', userData);
+      await api.post('users', userData);
       return { success: true };
     } catch (error) {
+      console.error('Registration error:', error);
       return { 
         success: false, 
         message: error.response?.data?.message || '회원가입에 실패했습니다.' 

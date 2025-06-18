@@ -5,10 +5,8 @@ import {
   SimpleGrid,
   Card,
   CardBody,
-  CardFooter,
   Text,
   Button,
-  Badge,
   useToast,
   Flex,
   InputGroup,
@@ -16,8 +14,6 @@ import {
   Input,
   VStack,
   HStack,
-  useColorModeValue,
-  Divider,
   Icon,
   Spinner,
   Center
@@ -29,7 +25,7 @@ import {
   FiPlay,
   FiAlertCircle
 } from 'react-icons/fi';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { examsApi } from '../api/exams';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -39,6 +35,8 @@ const Exams = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const toast = useToast();
   const navigate = useNavigate();
+  // user는 나중에 사용할 수 있으므로 주석 처리만 해둡니다
+  // eslint-disable-next-line no-unused-vars
   const { user } = useAuth();
 
   // 시험 시작 처리
@@ -63,27 +61,74 @@ const Exams = () => {
     }
   };
 
-  // 시험 목록 가져오기
+  // 시험 참여 처리
+  const handleParticipate = async (examId) => {
+    try {
+      await examsApi.participateInExam(examId);
+      toast({
+        title: '참여 완료',
+        description: '시험에 성공적으로 참여했습니다.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      // 참여 후 내 시험 목록 업데이트
+      const myExamsResponse = await examsApi.getMyParticipatingExams();
+      const myExams = Array.isArray(myExamsResponse) ? myExamsResponse : (myExamsResponse?.data || []);
+      
+      // 시험 목록 업데이트
+      setExams(prevExams => 
+        prevExams.map(exam => ({
+          ...exam,
+          isParticipating: myExams.some(myExam => myExam.id === exam.id)
+        }))
+      );
+      
+    } catch (error) {
+      console.error('시험 참여 중 오류 발생:', error);
+      toast({
+        title: '오류 발생',
+        description: error.response?.data?.message || '시험에 참여하는 중 오류가 발생했습니다.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // 전체 시험 목록 가져오기
   useEffect(() => {
     let isMounted = true;
     
-    const fetchExams = async () => {
+    const fetchAllExams = async () => {
       try {
         setIsLoading(true);
-        console.log('Fetching exams...');
-        const data = await examsApi.getExams();
-        console.log('Fetched exams:', data);
+        console.log('Fetching all exams...');
+        
+        // 전체 시험 목록과 내가 참여 중인 시험 목록을 병렬로 가져오기
+        const [allExamsResponse, myExamsResponse] = await Promise.all([
+          examsApi.getExams(),
+          examsApi.getMyParticipatingExams()
+        ]);
+        
+        const allExams = Array.isArray(allExamsResponse) ? allExamsResponse : (allExamsResponse?.data || []);
+        const myExams = Array.isArray(myExamsResponse) ? myExamsResponse : (myExamsResponse?.data || []);
         
         if (!isMounted) return;
         
-        // 현재 시간 기준으로 시험 상태 분류
+        console.log('Fetched all exams:', allExams);
+        console.log('My participating exams:', myExams);
+        
+        // 현재 시간 기준으로 시험 상태 분류 및 참여 여부 설정
         const now = new Date();
-        const processedExams = data.map(exam => ({
+        const processedExams = allExams.map(exam => ({
           ...exam,
-          status: new Date(exam.endedAt) < now ? 'ended' : 'available'
+          status: new Date(exam.endedAt) < now ? 'ended' : 'available',
+          isParticipating: myExams.some(myExam => myExam.id === exam.id)
         }));
         
-        console.log('Processed exams:', processedExams);
+        console.log('Processed all exams:', processedExams);
         setExams(processedExams);
       } catch (error) {
         console.error('시험 목록을 불러오는 중 오류 발생:', error);
@@ -103,7 +148,7 @@ const Exams = () => {
       }
     };
 
-    fetchExams();
+    fetchAllExams();
     
     return () => {
       isMounted = false; // 컴포넌트 언마운트 시 플래그 설정
@@ -143,7 +188,7 @@ const Exams = () => {
   return (
     <Box p={4}>
       <Flex justify="space-between" align="center" mb={6}>
-        <Heading size="lg">시험 목록</Heading>
+        <Heading size="lg">전체 시험 목록</Heading>
       </Flex>
 
       {/* 검색 */}
@@ -185,20 +230,30 @@ const Exams = () => {
                         <Text>종료: {formatDate(exam.endedAt)}</Text>
                       </HStack>
                     </VStack>
-                    <Button
-                      colorScheme="blue"
-                      leftIcon={<FiPlay />}
-                      onClick={() => handleStartExam(exam.id)}
-                      mt={2}
-                    >
-                      시험 시작하기
-                    </Button>
+                    {exam.isParticipating ? (
+                      <Button
+                        colorScheme="blue"
+                        leftIcon={<FiPlay />}
+                        onClick={() => handleStartExam(exam.id)}
+                        mt={2}
+                      >
+                        시험 시작하기
+                      </Button>
+                    ) : (
+                      <Button
+                        colorScheme="green"
+                        variant="outline"
+                        onClick={() => handleParticipate(exam.id)}
+                        mt={2}
+                      >
+                        참여하기
+                      </Button>
+                    )}
                   </VStack>
                 </CardBody>
               </Card>
             ))}
           </SimpleGrid>
-          <Divider my={6} />
         </>
       )}
 
@@ -215,15 +270,19 @@ const Exams = () => {
                   <VStack align="stretch" spacing={3}>
                     <Heading size="md">{exam.title}</Heading>
                     {exam.description && <Text>{exam.description}</Text>}
-                    <VStack align="start" spacing={1} color="gray.500">
+                    <VStack align="start" spacing={1} color="gray.600">
                       <HStack>
                         <Icon as={FiCalendar} />
-                        <Text>종료됨: {formatDate(exam.endedAt)}</Text>
+                        <Text>시작: {formatDate(exam.startedAt)}</Text>
+                      </HStack>
+                      <HStack>
+                        <Icon as={FiClock} />
+                        <Text>종료: {formatDate(exam.endedAt)}</Text>
                       </HStack>
                     </VStack>
                     <Button
                       leftIcon={<FiAlertCircle />}
-                      variant="outline"
+                      variant="ghost"
                       isDisabled
                       mt={2}
                     >
@@ -237,12 +296,9 @@ const Exams = () => {
         </>
       )}
 
-      {/* 검색 결과가 없는 경우 */}
       {filteredExams.length === 0 && (
-        <Center py={10} flexDirection="column">
-          <Text fontSize="lg" color="gray.500" mb={4}>
-            {searchTerm ? '검색 결과가 없습니다.' : '등록된 시험이 없습니다.'}
-          </Text>
+        <Center h="200px">
+          <Text>검색 결과가 없습니다.</Text>
         </Center>
       )}
     </Box>

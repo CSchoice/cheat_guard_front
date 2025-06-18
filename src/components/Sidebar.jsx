@@ -33,12 +33,20 @@ const SidebarContent = ({ onClose, ...rest }) => {
   const activeColor = useColorModeValue('brand.600', 'brand.200');
   const hoverBg = useColorModeValue('gray.50', 'gray.700');
 
-  const NavItem = ({ icon, children, to, ...rest }) => {
+  const NavItem = ({ icon, children, to, onClick, ...rest }) => {
     const isActive = location.pathname === to;
+    
+    const handleClick = (e) => {
+      if (onClick) {
+        onClick(e);
+      }
+    };
+    
     return (
       <ChakraLink
         as={RouterLink}
         to={to}
+        onClick={handleClick}
         style={{ textDecoration: 'none' }}
         _focus={{ boxShadow: 'none' }}
       >
@@ -76,13 +84,14 @@ const SidebarContent = ({ onClose, ...rest }) => {
 
   return (
     <Box
-      transition="3s ease"
+      transition="0.2s ease"
       bg={bg}
       borderRight="1px"
       borderRightColor={useColorModeValue('gray.200', 'gray.700')}
       w={{ base: 'full', md: 60 }}
       pos="fixed"
-      h="full"
+      h="100vh"
+      zIndex="sticky"
       {...rest}
     >
       <VStack h="full" spacing={1} align="stretch">
@@ -101,6 +110,10 @@ const SidebarContent = ({ onClose, ...rest }) => {
           
           <NavItem icon={FiFileText} to="/exams" onClick={onClose}>
             시험 관리
+          </NavItem>
+
+          <NavItem icon={FiFileText} to="/create-exam" onClick={onClose}>
+                시험 생성
           </NavItem>
           
           {isTeacher && (

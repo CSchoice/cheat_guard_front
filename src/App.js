@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard';
 import Exams from './pages/Exams';
 import ExamDetail from './pages/ExamDetail';
 import Exam from './pages/Exam';
+import CreateExam from './pages/CreateExam';
+import MyExams from './pages/MyExams';
 import Analyzer from './pages/Analyzer';
 import Streaming from './pages/Streaming';
 import Profile from './pages/Profile';
@@ -31,6 +33,7 @@ function App() {
             <Route path="/exams" element={<PrivateRoute><Exams /></PrivateRoute>} />
             <Route path="/exams/:id" element={<PrivateRoute><ExamDetail /></PrivateRoute>} />
             <Route path="/exam/:examId" element={<PrivateRoute><Exam /></PrivateRoute>} />
+            <Route path="/my-exams" element={<PrivateRoute><MyExams /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             
             {/* Teacher only routes */}
@@ -43,6 +46,11 @@ function App() {
               <TeacherRoute>
                 <Streaming />
               </TeacherRoute>
+            } />
+            <Route path="/create-exam" element={
+              <PrivateRoute>
+                <CreateExam />
+              </PrivateRoute>
             } />
           </Route>
           

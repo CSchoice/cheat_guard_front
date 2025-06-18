@@ -15,7 +15,41 @@ class StreamingService {
     this.socket.on('connect', () => {
       console.log('[WebSocket] ✅ Connected to server with ID:', this.socket.id);
       console.log('[WebSocket] Session ID:', this.sessionId);
+      
+      // 연결 시 분석 이벤트 리스너 등록
+      this.socket.on('analysis', (data) => {
+        console.log('[WebSocket] Received analysis data:', data);
+        if (this.onAnalysisCallback) {
+          this.onAnalysisCallback(data);
+        }
+      });
+
+      // 에러 이벤트 리스너
+      this.socket.on('error', (error) => {
+        console.error('[WebSocket] Error:', error);
+        if (this.onErrorCallback) {
+          this.onErrorCallback(error);
+        }
+      });
     });
+    
+    // 재연결 시 이벤트 리스너 재등록
+    const setupAnalysisListener = () => {
+      if (this.socket) {
+        // 기존 리스너 제거
+        this.socket.off('analysis');
+        // 새로운 리스너 등록
+        if (this.onAnalysisCallback) {
+          this.socket.on('analysis', this.onAnalysisCallback);
+        }
+      }
+    };
+    
+    // 초기 연결 시 리스너 설정
+    setupAnalysisListener();
+    
+    // 재연결 시에도 리스너 다시 설정
+    this.socket.on('reconnect', setupAnalysisListener);
 
     this.socket.on('connect_error', (error) => {
       console.error('[WebSocket] ❌ Connection Error:', error.message);
@@ -48,8 +82,10 @@ class StreamingService {
     }, 10000);
   }
 
-  initialize(sessionId) {
+  initialize(sessionId, examId, userId) {
     this.sessionId = sessionId;
+    this.examId = examId;
+    this.userId = userId;
 
     if (this.socket) {
       this.socket.disconnect();
@@ -77,7 +113,7 @@ class StreamingService {
       autoConnect: true,
       forceNew: true,
       auth: { token },
-      query: { sessionId },
+      query: { sessionId, examId },
       upgrade: false,
       withCredentials: true,
     };
@@ -95,22 +131,31 @@ class StreamingService {
     const size = frameData.byteLength ?? frameData.size ?? 0;
     console.log(`[StreamingService] 📤 Sending frame (${size} bytes)`);
 
+    const meta = {
+      sessionId: this.sessionId,
+      examId:    this.examId,
+      timestamp: Date.now(),
+      userId:    this.userId,
+    };
+  
     try {
       if (frameData instanceof Blob) {
         const reader = new FileReader();
         reader.onload = () => {
           const buffer = reader.result;
-          this.socket.emit('frame', buffer, (ack) => {
+          this.socket.emit('frame', { meta, buffer }, (ack) => {
             console.log('[StreamingService] Ack:', ack);
           });
         };
         reader.readAsArrayBuffer(frameData);
+  
       } else {
-        this.socket.emit('frame', frameData, (ack) => {
+        this.socket.emit('frame', { meta, buffer: frameData }, (ack) => {
           console.log('[StreamingService] Ack:', ack);
         });
       }
       return true;
+  
     } catch (err) {
       console.error('[StreamingService] Error sending frame:', err);
       return false;
@@ -118,8 +163,23 @@ class StreamingService {
   }
 
   onAnalysis(cb) {
-    if (!this.socket) return;
-    this.socket.on('analysis', cb);
+    console.log('[WebSocket] Analysis callback registered');
+    
+    // 기존 콜백 제거
+    if (this.socket) {
+      this.socket.off('analysis');
+    }
+    
+    // 새로운 콜백 설정
+    this.onAnalysisCallback = (data) => {
+      console.log('[WebSocket] Analysis data received in onAnalysis:', data);
+      cb(data);
+    };
+    
+    // 이미 소켓이 연결된 상태라면 즉시 이벤트 리스너 등록
+    if (this.socket) {
+      this.socket.on('analysis', this.onAnalysisCallback);
+    }
   }
 
   onError(cb) {

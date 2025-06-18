@@ -14,6 +14,8 @@ const Exam = () => {
   const { examId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const lastToastMessage = useRef('');
+  const lastToastTime = useRef(0);
 
   const [videoEl, setVideoEl] = useState(null);
   const [devices, setDevices] = useState([]);
@@ -82,7 +84,7 @@ const Exam = () => {
       .then(frame => frame && streamingService.sendFrame(frame))
       .catch(console.error)
       .finally(() => {
-        setTimeout(captureLoop.current, 1000);
+        setTimeout(captureLoop.current, 3000);
       });
   };
 
@@ -103,26 +105,53 @@ const Exam = () => {
       console.log('시험 세션 시작됨 - sessionId:', sessionId);
 
       // 2. WebSocket 연결 초기화
-      streamingService.initialize(sessionId);
+      streamingService.initialize(sessionId, examId);
 
       // 3. WebSocket 이벤트 리스너 설정
       streamingService.onAnalysis((data) => {
-        console.log('분석 결과 수신:', data);
-        setAnalysisResult(prev => ({
-          ...prev,
-          ...data,
-          timestamp: new Date().toISOString()
-        }));
+        console.log('분석 결과 수신 (raw):', data);
+        
+        // 백엔드 응답 형식에 맞게 분석 결과 파싱
+        const isCheating = data.status === 'cheating';
+        const message = data.message || '';
+        
+        // 메시지에 따른 플래그 설정
+        const analysisData = {
+          status: data.status || 'normal',
+          message: message,
+          timestamp: new Date().toISOString(),
+          cheatingDetected: isCheating,
+          noPersonDetected: message.includes('응시자가 보이지 않습니다'),
+          gazeAway: message.includes('시선 이탈 감지'),
+          forbiddenDevice: message.includes('금지 기기 감지'),
+          multiplePersons: message.includes('명 감지'),
+          headphonesDetected: message.includes('헤드폰 감지'),
+          multipleMonitors: message.includes('모니터 다중'),
+          suspiciousBook: message.includes('책 감지')
+        };
+        
+        console.log('처리된 분석 결과:', analysisData);
+        setAnalysisResult(analysisData);
 
-        if (data.cheatingDetected) {
-          toast({
-            title: '부정행위 감지',
-            description: '부정행위가 감지되어 시험을 종료합니다.',
-            status: 'error',
-            duration: 5000,
-            isClosable: true,
-          });
-          stopExam();
+        if (isCheating) {
+          const message = '부정행위가 감지되었습니다. 계속되면 시험이 종료될 수 있습니다.';
+          const now = Date.now();
+          
+          // 3초 이내에 동일한 메시지가 표시된 적이 없으면 토스트 표시
+          if (lastToastMessage.current !== message || now - lastToastTime.current > 3000) {
+            lastToastMessage.current = message;
+            lastToastTime.current = now;
+            
+            toast({
+              title: '부정행위 경고',
+              description: message,
+              status: 'warning',
+              duration: 3000,
+              isClosable: true,
+              position: 'top',
+              id: 'cheating-warning', // 고유 ID로 중복 방지
+            });
+          }
         }
       });
 
@@ -196,7 +225,7 @@ const Exam = () => {
       </Select>
 
       {/* 비디오 */}
-      <Box position="relative" width="100%" pb="56.25%" bg="black">
+      <Box position="relative" w="100%" maxW="640px" h="480px" bg="black" rounded="md" overflow="hidden" mb={4}>
         <video
           ref={videoRef}
           autoPlay
@@ -210,11 +239,56 @@ const Exam = () => {
             transform: 'scaleX(-1)',
           }}
         />
+        
+        {/* 위반 내용 오버레이 */}
+        {analysisResult?.cheatingDetected && (
+          <Box
+            position="absolute"
+            top="10px"
+            left="10px"
+            right="10px"
+            p={3}
+            bg="rgba(255, 0, 0, 0.7)"
+            color="white"
+            borderRadius="md"
+            zIndex={10}
+          >
+            <Text fontWeight="bold" fontSize="lg" mb={1}>⚠️ 부정행위 감지</Text>
+            <VStack align="start" spacing={1}>
+              {analysisResult.noPersonDetected && (
+                <Text>• 응시자가 보이지 않습니다.</Text>
+              )}
+              {analysisResult.gazeAway && (
+                <Text>• 시선 이탈이 감지되었습니다.</Text>
+              )}
+              {analysisResult.forbiddenDevice && (
+                <Text>• 금지된 기기가 감지되었습니다.</Text>
+              )}
+              {analysisResult.multiplePersons && (
+                <Text>• 여러 명의 사람이 감지되었습니다.</Text>
+              )}
+              {analysisResult.headphonesDetected && (
+                <Text>• 헤드폰이 감지되었습니다.</Text>
+              )}
+              {analysisResult.multipleMonitors && (
+                <Text>• 여러 대의 모니터가 감지되었습니다.</Text>
+              )}
+              {analysisResult.suspiciousBook && (
+                <Text>• 의심스러운 책이 감지되었습니다.</Text>
+              )}
+            </VStack>
+            <Text mt={2} fontSize="sm" opacity={0.8}>
+              {new Date(analysisResult.timestamp).toLocaleTimeString()}
+            </Text>
+          </Box>
+        )}
+        
         {cameraLoading && (
           <Box
             position="absolute" inset={0}
             display="flex" alignItems="center" justifyContent="center"
             bg="rgba(0,0,0,0.5)"
+            zIndex={5}
           >
             <Spinner size="lg" color="white" mr={2} />
             <Text color="white">카메라 초기화 중...</Text>
