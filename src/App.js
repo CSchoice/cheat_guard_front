@@ -35,6 +35,7 @@ function App() {
             <Route path="/exam/:examId" element={<PrivateRoute><Exam /></PrivateRoute>} />
             <Route path="/my-exams" element={<PrivateRoute><MyExams /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/examDetail/:id" element={<PrivateRoute><ExamDetail /></PrivateRoute>} />
             
             {/* Teacher only routes */}
             <Route path="/analyzer" element={

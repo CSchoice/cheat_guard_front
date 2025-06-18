@@ -59,5 +59,11 @@ export const examsApi = {
   stopExam: async (examId) => {
     const response = await api.put(`/exams/${examId}/stop`);
     return response.data;
-  }
+  },
+
+  // 시험 단일 조회
+  getExamById: async (id) => {
+    const response = await api.get(`/exams/${id}`);
+    return response.data;
+  },
 };

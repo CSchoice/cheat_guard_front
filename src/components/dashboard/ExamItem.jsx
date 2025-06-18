@@ -11,8 +11,10 @@ import {
 } from '@chakra-ui/react';
 import { FiPlay, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import { Link as RouterLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const ExamItem = ({ exam, onParticipate, onCancelParticipate }) => {
+  const navigate = useNavigate();
   const getExamStatus = (deadlineAt) => {
     const now = new Date();
     const deadline = new Date(deadlineAt);
@@ -68,6 +70,18 @@ const ExamItem = ({ exam, onParticipate, onCancelParticipate }) => {
           <strong>마감 기한:</strong> {formatDateTime(exam.deadlineAt)}
         </Text>
       </VStack>
+
+      {isCompleted && (
+        <Button
+          colorScheme="gray"
+          size="sm"
+          width="full"
+          onClick={() => navigate(`/examDetail/${exam.id}`)}
+          leftIcon={<FiCheckCircle />}
+        >
+          시험 결과 보기
+        </Button>
+      )}
 
       {isCompleted ? null : (
         <>

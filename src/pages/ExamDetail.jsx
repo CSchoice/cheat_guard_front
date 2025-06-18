@@ -90,6 +90,7 @@ const ExamDetail = () => {
                   <Tr>
                     <Th>사유</Th>
                     <Th>발생 시각</Th>
+                    <Th>이미지</Th> {/* 이미지 컬럼 추가 */}
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -102,6 +103,21 @@ const ExamDetail = () => {
                         </HStack>
                       </Td>
                       <Td>{formatDate(log.detectedAt)}</Td>
+                      <Td>
+                        {log.imageUrl ? (
+                          <img
+                            src={log.imageUrl}
+                            alt="부정행위"
+                            style={{
+                              height: '100px',
+                              borderRadius: '8px',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          <Text>이미지 없음</Text>
+                        )}
+                      </Td>
                     </Tr>
                   ))}
                 </Tbody>
@@ -113,38 +129,6 @@ const ExamDetail = () => {
         </Card>
 
       </VStack>
-
-      <Card variant="outline">
-        <CardHeader>
-          <Heading size="md">부정행위 로그</Heading>
-        </CardHeader>
-        <CardBody>
-          {exam.logs?.length > 0 ? (
-            <Table variant="simple">
-              <Thead>
-                <Tr>
-                  <Th>참가자</Th>
-                  <Th>내용</Th>
-                  <Th>시간</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {exam.logs.map((log) => (
-                  <Tr key={log.id}>
-                    <Td>{log.user?.name || '-'}</Td>
-                    <Td>
-                      <HStack><Icon as={FiAlertTriangle} /><Text>{log.message}</Text></HStack>
-                    </Td>
-                    <Td>{formatDate(log.timestamp)}</Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          ) : (
-            <Text>기록된 부정행위 로그가 없습니다.</Text>
-          )}
-        </CardBody>
-      </Card>
     </Box>
   );
 };
