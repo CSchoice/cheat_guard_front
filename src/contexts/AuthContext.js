@@ -34,6 +34,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (nickname, password) => {
+    console.log('🔍 process.env.REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+    console.log('📡 login 호출 직전 nickname:', nickname);
     try {
       console.log('Attempting login with:', { nickname });
       const response = await api.post('/auth/login', { nickname, password });

@@ -35,6 +35,8 @@ const Login = () => {
   const borderColor = useColorModeValue('gray.200', 'gray.700');
 
   const handleSubmit = async (e) => {
+    console.log('🔍 process.env.REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+    console.log('📡 login 호출 직전 nickname:', nickname);
     e.preventDefault();
     
     // Validate inputs

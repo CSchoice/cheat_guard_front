@@ -96,8 +96,8 @@ class StreamingService {
       this.pingInterval = null;
     }
 
-    const serverUrl = 'http://localhost:5000';
-    const namespace = 'api/stream';
+    const serverUrl = process.env.REACT_APP_API_URL;
+    const namespace = 'stream';
     const connectionUrl = `${serverUrl}/${namespace}`; 
     const token = getToken();
 
