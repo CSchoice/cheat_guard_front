@@ -47,5 +47,17 @@ export const examsApi = {
   participateInExam: async (examId) => {
     const response = await api.post(`/exams/${examId}/register`);
     return response.data;
+  },
+
+  // 시험 참여 취소하기
+  cancelParticipateInExam: async (examId) => {
+    const response = await api.put(`/exams/${examId}/register`);
+    return response.data;
+  },
+
+  // 시험 종료
+  stopExam: async (examId) => {
+    const response = await api.put(`/exams/${examId}/stop`);
+    return response.data;
   }
 };

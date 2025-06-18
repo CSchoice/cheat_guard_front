@@ -12,7 +12,7 @@ import {
 import { FiArrowRight } from 'react-icons/fi';
 import ExamItem from './ExamItem';
 
-const ExamList = ({ exams, onParticipate, isLoading }) => {
+const ExamList = ({ exams, onParticipate, onCancelParticipate, isLoading }) => {
   const [showAll, setShowAll] = useState(false);
   const emptyTextColor = useColorModeValue('gray.500', 'gray.400');
   const cardBg = useColorModeValue('white', 'gray.700');
@@ -49,6 +49,7 @@ const ExamList = ({ exams, onParticipate, isLoading }) => {
                 key={exam.id}
                 exam={exam}
                 onParticipate={onParticipate}
+                onCancelParticipate={onCancelParticipate} // ✅ 추가됨
               />
             ))
           ) : (

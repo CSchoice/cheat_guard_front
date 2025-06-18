@@ -12,21 +12,15 @@ import {
   InputGroup,
   InputLeftElement,
   Input,
-  VStack,
-  HStack,
   Icon,
   Spinner,
   Center
 } from '@chakra-ui/react';
-import {
-  FiSearch,
-  FiCalendar,
-  FiPlay,
-  FiAlertCircle
-} from 'react-icons/fi';
+import { FiSearch } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { examsApi } from '../api/exams';
 import { useAuth } from '../contexts/AuthContext';
+import ExamItem from '../components/dashboard/ExamItem';
 
 const Exams = () => {
   const [exams, setExams] = useState([]);
@@ -57,6 +51,18 @@ const Exams = () => {
     }
   };
 
+  const updateParticipationStatus = async () => {
+    const myExamsResponse = await examsApi.getMyParticipatingExams();
+    const myExams = Array.isArray(myExamsResponse) ? myExamsResponse : (myExamsResponse?.data || []);
+
+    setExams(prevExams =>
+      prevExams.map(exam => ({
+        ...exam,
+        isParticipating: myExams.some(myExam => myExam.id === exam.id)
+      }))
+    );
+  };
+
   const handleParticipate = async (examId) => {
     try {
       await examsApi.participateInExam(examId);
@@ -67,16 +73,7 @@ const Exams = () => {
         duration: 3000,
         isClosable: true,
       });
-
-      const myExamsResponse = await examsApi.getMyParticipatingExams();
-      const myExams = Array.isArray(myExamsResponse) ? myExamsResponse : (myExamsResponse?.data || []);
-
-      setExams(prevExams =>
-        prevExams.map(exam => ({
-          ...exam,
-          isParticipating: myExams.some(myExam => myExam.id === exam.id)
-        }))
-      );
+      await updateParticipationStatus();
     } catch (error) {
       console.error('시험 참여 중 오류 발생:', error);
       toast({
@@ -89,9 +86,30 @@ const Exams = () => {
     }
   };
 
+  const handleCancelParticipate = async (examId) => {
+    try {
+      await examsApi.cancelParticipateInExam(examId); // 같은 API
+      toast({
+        title: '참여가 취소되었습니다.',
+        status: 'info',
+        duration: 3000,
+        isClosable: true,
+      });
+      await updateParticipationStatus();
+    } catch (error) {
+      console.error('참가 취소 중 오류 발생:', error);
+      toast({
+        title: '오류 발생',
+        description: error.response?.data?.message || '참가 취소 중 오류가 발생했습니다.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
-
     const fetchAllExams = async () => {
       try {
         setIsLoading(true);
@@ -102,6 +120,7 @@ const Exams = () => {
 
         const allExams = Array.isArray(allExamsResponse) ? allExamsResponse : (allExamsResponse?.data || []);
         const myExams = Array.isArray(myExamsResponse) ? myExamsResponse : (myExamsResponse?.data || []);
+
         if (!isMounted) return;
 
         const now = new Date();
@@ -144,17 +163,6 @@ const Exams = () => {
   const availableExams = filteredExams.filter(exam => exam.status === 'available');
   const endedExams = filteredExams.filter(exam => exam.status === 'ended');
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  };
-
   if (isLoading) {
     return (
       <Center h="200px">
@@ -188,38 +196,14 @@ const Exams = () => {
         <>
           <Heading size="md" mb={4}>진행 중인 시험</Heading>
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6} mb={8}>
-            {availableExams.map((exam) => (
-              <Card key={exam.id} variant="outline">
-                <CardBody>
-                  <VStack align="stretch" spacing={3}>
-                    <Heading size="md">{exam.title}</Heading>
-                    {exam.description && <Text>{exam.description}</Text>}
-                    <HStack color="gray.600">
-                      <Icon as={FiCalendar} />
-                      <Text>마감: {formatDate(exam.deadlineAt)}</Text>
-                    </HStack>
-                    {exam.isParticipating ? (
-                      <Button
-                        colorScheme="blue"
-                        leftIcon={<FiPlay />}
-                        onClick={() => handleStartExam(exam.id)}
-                        mt={2}
-                      >
-                        시험 시작하기
-                      </Button>
-                    ) : (
-                      <Button
-                        colorScheme="green"
-                        variant="outline"
-                        onClick={() => handleParticipate(exam.id)}
-                        mt={2}
-                      >
-                        참여하기
-                      </Button>
-                    )}
-                  </VStack>
-                </CardBody>
-              </Card>
+            {availableExams.map(exam => (
+              <ExamItem
+                key={exam.id}
+                exam={exam}
+                onParticipate={handleParticipate}
+                onCancelParticipate={handleCancelParticipate}
+                onStart={handleStartExam}
+              />
             ))}
           </SimpleGrid>
         </>
@@ -229,27 +213,12 @@ const Exams = () => {
         <>
           <Heading size="md" mb={4}>종료된 시험</Heading>
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-            {endedExams.map((exam) => (
-              <Card key={exam.id} variant="outline" opacity={0.7}>
-                <CardBody>
-                  <VStack align="stretch" spacing={3}>
-                    <Heading size="md">{exam.title}</Heading>
-                    {exam.description && <Text>{exam.description}</Text>}
-                    <HStack color="gray.600">
-                      <Icon as={FiCalendar} />
-                      <Text>마감: {formatDate(exam.deadlineAt)}</Text>
-                    </HStack>
-                    <Button
-                      leftIcon={<FiAlertCircle />}
-                      variant="ghost"
-                      isDisabled
-                      mt={2}
-                    >
-                      종료된 시험
-                    </Button>
-                  </VStack>
-                </CardBody>
-              </Card>
+            {endedExams.map(exam => (
+              <ExamItem
+                key={exam.id}
+                exam={exam}
+                disabled
+              />
             ))}
           </SimpleGrid>
         </>

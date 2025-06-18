@@ -78,6 +78,46 @@ const Dashboard = () => {
     }
   };
 
+    // 참가 취소 핸들러 추가
+  const handleCancelParticipate = async (examId) => {
+    try {
+      setIsLoading(true);
+      const response = await examsApi.cancelParticipateInExam(examId); // toggle API
+
+      if (response) {
+        setAllExams(prevExams =>
+          prevExams.map(exam =>
+            exam.id === examId ? { ...exam, isParticipating: false } : exam
+          )
+        );
+
+        setParticipatingExams(prev =>
+          prev.filter(exam => exam.id !== examId)
+        );
+
+        toast({
+          title: '참여가 취소되었습니다.',
+          status: 'info',
+          duration: 3000,
+          isClosable: true,
+        });
+
+        await fetchDashboardData();
+      }
+    } catch (error) {
+      console.error('참가 취소 중 오류 발생:', error);
+      toast({
+        title: '오류 발생',
+        description: error.message || '참가 취소에 실패했습니다.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const fetchDashboardData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -194,6 +234,7 @@ const Dashboard = () => {
             <ExamList
               exams={allExams}
               onParticipate={handleParticipate}
+              onCancelParticipate={handleCancelParticipate}
               isLoading={false}
               emptyMessage="등록된 시험이 없습니다."
             />
@@ -221,6 +262,7 @@ const Dashboard = () => {
               exams={participatingExams}
               onParticipate={handleParticipate}
               isLoading={false}
+              onCancelParticipate={handleCancelParticipate}
               emptyMessage="참여 중인 시험이 없습니다."
             />
           </Box>

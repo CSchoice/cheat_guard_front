@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { startExam } from '../services/examService';
 import streamingService from '../services/streamingService';
 import CameraService from '../services/cameraService';
+import { examsApi } from '../api/exams';
 
 const cameraService = new CameraService();
 
@@ -180,12 +181,31 @@ const Exam = () => {
     }
   };
 
-  // 시험 종료
-  const stopExam = () => {
+  const stopExam = async () => {
     setExamStarted(false);
     cameraService.stopCamera();
-    streamingService.disconnect();
-    toast({ title: '시험 종료', status: 'info', duration: 3000, isClosable: true });
+  
+    try {
+      await streamingService.disconnect(); // 연결 종료
+      await examsApi.stopExam(examId);
+  
+      toast({
+        title: '시험 종료',
+        status: 'info',
+        duration: 3000,
+        isClosable: true
+      });
+    } catch (error) {
+      console.error('시험 종료 중 오류:', error);
+      toast({
+        title: '시험 종료 실패',
+        description: error.message || '시험 종료 요청 중 오류 발생',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    }
+  
     navigate('/dashboard');
   };
 

@@ -9,10 +9,10 @@ import {
   Button,
   useColorModeValue
 } from '@chakra-ui/react';
-import { FiPlay, FiCheckCircle } from 'react-icons/fi';
+import { FiPlay, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import { Link as RouterLink } from 'react-router-dom';
 
-const ExamItem = ({ exam, onParticipate }) => {
+const ExamItem = ({ exam, onParticipate, onCancelParticipate }) => {
   const getExamStatus = (deadlineAt) => {
     const now = new Date();
     const deadline = new Date(deadlineAt);
@@ -34,6 +34,8 @@ const ExamItem = ({ exam, onParticipate }) => {
 
   const status = getExamStatus(exam.deadlineAt);
   const isParticipating = exam.isParticipating;
+  const isCompleted = exam.isCompleted;
+
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const textColor = useColorModeValue('gray.600', 'gray.300');
 
@@ -48,15 +50,15 @@ const ExamItem = ({ exam, onParticipate }) => {
       <HStack justify="space-between" mb={2}>
         <Heading size="md">{exam.title}</Heading>
         <HStack spacing={2}>
-          <Badge
-            colorScheme={
-              status.status === 'available' ? 'blue' : 'gray'
-            }
-          >
-            {status.text}
-          </Badge>
-          {isParticipating && (
-            <Badge colorScheme="green">참여 중</Badge>
+          {!isCompleted && (
+            <Badge colorScheme={status.status === 'available' ? 'blue' : 'gray'}>
+              {status.text}
+            </Badge>
+          )}
+          {isCompleted ? (
+            <Badge colorScheme="red">시험 완료</Badge>
+          ) : (
+            isParticipating && <Badge colorScheme="green">참여 중</Badge>
           )}
         </HStack>
       </HStack>
@@ -67,29 +69,47 @@ const ExamItem = ({ exam, onParticipate }) => {
         </Text>
       </VStack>
 
-      {status.status === 'available' && !isParticipating && (
-        <Button
-          colorScheme="blue"
-          size="sm"
-          leftIcon={<FiCheckCircle />}
-          onClick={() => onParticipate(exam.id)}
-          width="full"
-        >
-          시험 참여하기
-        </Button>
-      )}
+      {isCompleted ? null : (
+        <>
+          {status.status === 'available' && !isParticipating && (
+            <Button
+              colorScheme="blue"
+              size="sm"
+              leftIcon={<FiCheckCircle />}
+              onClick={() => onParticipate(exam.id)}
+              width="full"
+            >
+              시험 참여하기
+            </Button>
+          )}
 
-      {isParticipating && status.status === 'available' && (
-        <Button
-          as={RouterLink}
-          to={`/exam/${exam.id}`}
-          colorScheme="green"
-          size="sm"
-          leftIcon={<FiPlay />}
-          width="full"
-        >
-          시험 응시하기
-        </Button>
+          {isParticipating && status.status === 'available' && (
+            <>
+              <Button
+                as={RouterLink}
+                to={`/exam/${exam.id}`}
+                colorScheme="green"
+                size="sm"
+                leftIcon={<FiPlay />}
+                width="full"
+              >
+                시험 응시하기
+              </Button>
+
+              <Button
+                colorScheme="red"
+                variant="outline"
+                size="sm"
+                leftIcon={<FiXCircle />}
+                onClick={() => onCancelParticipate(exam.id)}
+                width="full"
+                mt={2}
+              >
+                시험 참가 취소
+              </Button>
+            </>
+          )}
+        </>
       )}
     </Box>
   );
