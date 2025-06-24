@@ -273,30 +273,7 @@ const Exam = () => {
             borderRadius="md"
             zIndex={10}
           >
-            <Text fontWeight="bold" fontSize="lg" mb={1}>⚠️ 부정행위 감지</Text>
-            <VStack align="start" spacing={1}>
-              {analysisResult.noPersonDetected && (
-                <Text>• 응시자가 보이지 않습니다.</Text>
-              )}
-              {analysisResult.gazeAway && (
-                <Text>• 시선 이탈이 감지되었습니다.</Text>
-              )}
-              {analysisResult.forbiddenDevice && (
-                <Text>• 금지된 기기가 감지되었습니다.</Text>
-              )}
-              {analysisResult.multiplePersons && (
-                <Text>• 여러 명의 사람이 감지되었습니다.</Text>
-              )}
-              {analysisResult.headphonesDetected && (
-                <Text>• 헤드폰이 감지되었습니다.</Text>
-              )}
-              {analysisResult.multipleMonitors && (
-                <Text>• 여러 대의 모니터가 감지되었습니다.</Text>
-              )}
-              {analysisResult.suspiciousBook && (
-                <Text>• 의심스러운 책이 감지되었습니다.</Text>
-              )}
-            </VStack>
+            <Text fontWeight="bold" fontSize="lg" mb={1}>⚠️ {analysisResult.message}</Text>
             <Text mt={2} fontSize="sm" opacity={0.8}>
               {new Date(analysisResult.timestamp).toLocaleTimeString()}
             </Text>

@@ -85,31 +85,32 @@ const ExamDetail = () => {
           </CardHeader>
           <CardBody>
             {exam.cheatingLogs?.length > 0 ? (
-              <Table variant="simple">
+              <Table variant="simple" size="sm">
                 <Thead>
                   <Tr>
-                    <Th>사유</Th>
-                    <Th>발생 시각</Th>
-                    <Th>이미지</Th> {/* 이미지 컬럼 추가 */}
+                    <Th width="30%">사유</Th>
+                    <Th width="30%">발생 시각</Th>
+                    <Th width="40%">이미지</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
                   {exam.cheatingLogs.map((log, index) => (
                     <Tr key={index}>
                       <Td>
-                        <HStack>
-                          <Icon as={FiAlertTriangle} />
-                          <Text>{log.reason}</Text>
+                        <HStack spacing={2}>
+                          <Icon as={FiAlertTriangle} color="red.500" />
+                          <Text isTruncated maxW="300px">{log.reason}</Text>
                         </HStack>
                       </Td>
-                      <Td>{formatDate(log.detectedAt)}</Td>
+                      <Td whiteSpace="nowrap">{formatDate(log.detectedAt)}</Td>
                       <Td>
                         {log.imageUrl ? (
                           <img
                             src={log.imageUrl}
                             alt="부정행위"
                             style={{
-                              height: '100px',
+                              width: '400px',
+                              height: '300px',
                               borderRadius: '8px',
                               objectFit: 'cover',
                             }}
